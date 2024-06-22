@@ -13,6 +13,7 @@ Lidar projection on RGB camera example
 import glob
 import os
 import sys
+import cv2
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -28,6 +29,9 @@ import argparse
 from queue import Queue
 from queue import Empty
 from matplotlib import cm
+import pygame
+from pygame.locals import *
+
 
 try:
     import numpy as np
@@ -74,11 +78,18 @@ def tutorial(args):
     camera = None
     lidar = None
 
+    # Pygame initialization
+    pygame.init()
+    image_w, image_h = 1690, 680  # Adjust dimensions as needed
+    screen = pygame.display.set_mode((image_w, image_h))
+    pygame.display.set_caption('Lidar Points Visualization')
+
     try:
         # Search the desired blueprints
         vehicle_bp = bp_lib.filter("vehicle.lincoln.mkz2017")[0]
         camera_bp = bp_lib.filter("sensor.camera.rgb")[0]
         lidar_bp = bp_lib.filter("sensor.lidar.ray_cast")[0]
+        
 
         # Configure the blueprints
         camera_bp.set_attribute("image_size_x", str(args.width))
@@ -154,6 +165,7 @@ def tutorial(args):
             im_array = np.copy(np.frombuffer(image_data.raw_data, dtype=np.dtype("uint8")))
             im_array = np.reshape(im_array, (image_data.height, image_data.width, 4))
             im_array = im_array[:, :, :3][:, :, ::-1]
+            rgb_image_np = im_array.copy()
 
             # Get the lidar data and convert it to a numpy array.
             p_cloud_size = len(lidar_data)
@@ -254,7 +266,22 @@ def tutorial(args):
                         u_coord[i]-args.dot_extent : u_coord[i]+args.dot_extent] = color_map[i]
 
             # Save the image using Pillow module.
-            image = Image.fromarray(im_array)
+            total_array = np.concatenate((rgb_image_np, im_array ), axis=1)
+            print(rgb_image_np.shape, im_array.shape)
+
+            #print(total_array.shape)
+            #total_array = total_array.reshape()
+            image = Image.fromarray(total_array)
+            # Convert PIL image to Pygame surface
+            image_surface = pygame.image.fromstring(image.tobytes(), image.size, image.mode)
+            #image_surface = pygame.transform.scale(image_surface, (image_w, image_h))
+
+            # Display the image on the screen
+            screen.blit(image_surface, (0, 0))
+            pygame.display.flip()
+
+            # Delay to control frame rate (optional)
+            pygame.time.delay(10)  # Adjust delay as needed
             image.save("_out/%08d.png" % image_data.frame)
 
     finally:
