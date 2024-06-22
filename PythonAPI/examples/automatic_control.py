@@ -685,6 +685,16 @@ def game_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(client.get_world(), hud, args)
+
+        # Set synchronous mode
+        settings = world.world.get_settings()
+        settings.synchronous_mode = True
+        settings.fixed_delta_seconds = 1.0 / 60.0  # 60 FPS
+        world.world.apply_settings(settings)
+
+        traffic_manager = client.get_trafficmanager()
+        traffic_manager.set_synchronous_mode(True)
+
         controller = KeyboardControl(world)
 
         if args.agent == "Roaming":
@@ -715,18 +725,14 @@ def game_loop(args):
             if controller.parse_events():
                 return
 
-            # As soon as the server is ready continue!
-            if not world.world.wait_for_tick(10.0):
-                continue
+            # Advance the simulation
+            world.world.tick()
 
             if args.agent == "Roaming" or args.agent == "Basic":
                 if controller.parse_events():
                     return
 
-                # as soon as the server is ready continue!
-                world.world.wait_for_tick(10.0)
-
-                world.tick(clock)
+                # world.tick(clock)
                 world.render(display)
                 pygame.display.flip()
                 control = agent.run_step()
@@ -757,11 +763,19 @@ def game_loop(args):
                 world.player.apply_control(control)
 
     finally:
+        # Reset synchronous mode
+        settings = world.world.get_settings()
+        settings.synchronous_mode = False
+        settings.fixed_delta_seconds = None
+        world.world.apply_settings(settings)
+
+        traffic_manager.set_synchronous_mode(False)
+
         if world is not None:
             world.destroy()
 
         pygame.quit()
-
+        
 
 # ==============================================================================
 # -- main() --------------------------------------------------------------
