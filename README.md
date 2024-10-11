@@ -32,7 +32,7 @@
 ( We will run the script to get synchronized camera data with vehicle in automatic control, build with carla Python API)
 - Go to pythonAPI folder / Examples
 ```
-python3 sync_camera_automatic_control.py
+python3 sync_camera_auto_control.py
 ```
 
 ## Example code of sync camera data : 
